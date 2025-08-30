@@ -52,6 +52,7 @@ class Program
         {
             serverOptions.ListenAnyIP(5554, listenOptions =>
             {
+                // HTTP/2만 사용
                 listenOptions.Protocols = HttpProtocols.Http2;
             });
         });

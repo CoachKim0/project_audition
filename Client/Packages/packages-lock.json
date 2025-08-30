@@ -7,6 +7,13 @@
       "dependencies": {},
       "hash": "64285ae060c9fe2aeb2a73b076b160939ce3be1a"
     },
+    "com.cysharp.yetanotherhttphandler": {
+      "version": "https://github.com/Cysharp/YetAnotherHttpHandler.git?path=src/YetAnotherHttpHandler#1.11.3",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "e3223114f04646d016ac2a32c2671dbbfe28d810"
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
       "depth": 0,
