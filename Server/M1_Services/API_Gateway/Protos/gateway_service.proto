@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+option csharp_namespace = "API_Gateway.Protos";
+
+package gateway;
+
+// API Gateway 서비스 - 모든 클라이언트 요청의 진입점
+service GatewayService {
+  // 인증 관련
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  
+  // 게임 관련
+  rpc JoinGame(JoinGameRequest) returns (JoinGameResponse);
+  rpc GameAction(GameActionRequest) returns (GameActionResponse);
+  
+  // 채팅 관련
+  rpc SendChat(SendChatRequest) returns (SendChatResponse);
+  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
+  
+  // 범용 요청 처리
+  rpc ProcessRequest(GatewayRequest) returns (GatewayResponse);
+}
+
+// 범용 요청/응답 메시지
+message GatewayRequest {
+  string service = 1;        // 대상 서비스 (auth, game, chat, db, log)
+  string method = 2;         // 호출할 메서드
+  string user_id = 3;        // 사용자 ID
+  string token = 4;          // 인증 토큰
+  string payload = 5;        // JSON 형태의 요청 데이터
+  int64 timestamp = 6;       // 요청 시간
+}
+
+message GatewayResponse {
+  bool success = 1;
+  string message = 2;
+  string data = 3;           // JSON 형태의 응답 데이터
+  int32 status_code = 4;
+  int64 timestamp = 5;
+}
+
+// 인증 관련 메시지
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+  string device_id = 3;
+  int32 platform_type = 4;
+  string auth_key = 5;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string message = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+  int32 user_id = 5;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+  string device_id = 4;
+  int32 platform_type = 5;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  string message = 2;
+  int32 user_id = 3;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+  string user_id = 2;
+}
+
+message ValidateTokenResponse {
+  bool is_valid = 1;
+  int32 user_id = 2;
+  string username = 3;
+}
+
+// 게임 관련 메시지
+message JoinGameRequest {
+  string user_id = 1;
+  string token = 2;
+  string game_mode = 3;
+}
+
+message JoinGameResponse {
+  bool success = 1;
+  string room_id = 2;
+  string game_server_endpoint = 3;
+  string message = 4;
+}
+
+message GameActionRequest {
+  string user_id = 1;
+  string token = 2;
+  string room_id = 3;
+  string action_type = 4;
+  string action_data = 5;
+}
+
+message GameActionResponse {
+  bool success = 1;
+  string message = 2;
+  string result_data = 3;
+}
+
+// 채팅 관련 메시지
+message SendChatRequest {
+  string user_id = 1;
+  string token = 2;
+  string room_id = 3;
+  string message = 4;
+  int32 chat_type = 5;
+}
+
+message SendChatResponse {
+  bool success = 1;
+  string message = 2;
+  int64 message_id = 3;
+}
+
+message GetChatHistoryRequest {
+  string user_id = 1;
+  string token = 2;
+  string room_id = 3;
+  int32 limit = 4;
+  int64 before_timestamp = 5;
+}
+
+message GetChatHistoryResponse {
+  bool success = 1;
+  repeated ChatMessage messages = 2;
+  string message = 3;
+}
+
+message ChatMessage {
+  int64 message_id = 1;
+  string user_id = 2;
+  string username = 3;
+  string content = 4;
+  int64 timestamp = 5;
+  int32 chat_type = 6;
+}

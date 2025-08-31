@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Grpc.Net.Client;
 using GrpcApp;
 using Cysharp.Net.Http;
+using API_Gateway.Protos;
 
 /// <summary>
 /// OnGUI 방식으로 직접 gRPC 인증 테스트를 위한 클래스
@@ -13,13 +14,23 @@ public class NetTest : MonoBehaviour
 {
     [Header("서버 설정")]
     public string serverAddress = "127.0.0.1";
-    public int serverPort = 5554;
+    public int serverPort = 5550; // API Gateway 포트
     
     [Header("UI 상태")]
     private string _username = "testuser";
     private string _password = "password123";
     private string _email = "test@example.com";
     private string _nickname = "테스터";
+    
+    [Header("인증 설정")]
+    private string _authKey = "google_or_apple_auth_key_abcd_1234";
+    private string _appVersion = "1.0.0";
+    private string _deviceId = "unity_test_device_001";
+    private int _platformType = 1; // 1=Google, 2=Apple
+    private int _languageId = 1; // 1=한국어, 2=영어
+    private int _timeZone = 540; // UTC+9 (한국 시간)
+    private string _national = "KR";
+    private string _clientOption = "unity_client";
     
     private string _statusMessage = "준비";
     private string _lastResponse = "";
@@ -29,7 +40,7 @@ public class NetTest : MonoBehaviour
     
     // gRPC 클라이언트
     private GrpcChannel _channel;
-    private GameService.GameServiceClient _client;
+    private GatewayService.GatewayServiceClient _client;
     private bool _isConnected = false;
     private bool _isAuthenticated = false;
     
@@ -176,13 +187,24 @@ public class NetTest : MonoBehaviour
         GUILayout.EndHorizontal();
         
         GUILayout.BeginHorizontal();
-        GUILayout.Label("이메일:", GUILayout.Width(70));
-        _email = GUILayout.TextField(_email);
+        GUILayout.Label("Auth Key:", GUILayout.Width(70));
+        _authKey = GUILayout.TextField(_authKey);
         GUILayout.EndHorizontal();
         
         GUILayout.BeginHorizontal();
-        GUILayout.Label("닉네임:", GUILayout.Width(70));
-        _nickname = GUILayout.TextField(_nickname);
+        GUILayout.Label("플랫폼:", GUILayout.Width(70));
+        string[] platforms = {"Google(1)", "Apple(2)"};
+        _platformType = GUILayout.SelectionGrid(_platformType - 1, platforms, 2) + 1;
+        GUILayout.EndHorizontal();
+        
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("앱 버전:", GUILayout.Width(70));
+        _appVersion = GUILayout.TextField(_appVersion);
+        GUILayout.EndHorizontal();
+        
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("디바이스 ID:", GUILayout.Width(70));
+        _deviceId = GUILayout.TextField(_deviceId);
         GUILayout.EndHorizontal();
     }
     
@@ -281,7 +303,7 @@ public class NetTest : MonoBehaviour
                 MaxSendMessageSize = 4 * 1024 * 1024,
                 DisposeHttpClient = true
             });
-            _client = new GameService.GameServiceClient(_channel);
+            _client = new GatewayService.GatewayServiceClient(_channel);
             
             // 연결 테스트용 간단한 호출
             AddToLog($"gRPC 채널 생성: {address}");
@@ -346,52 +368,36 @@ public class NetTest : MonoBehaviour
         
         try
         {
-            // protobuf GameMessage 생성
-            var gameMessage = new GameMessage
+            // API Gateway RegisterRequest 생성
+            var registerRequest = new RegisterRequest
             {
-                UserId = _username,
-                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                AuthUser = new AuthUser
-                {
-                    PlatformType = 2, // 회원가입
-                    AuthKey = _username,
-                    RetPassKey = _password
-                }
+                Username = _username,
+                Password = _password,
+                Email = _email,
+                DeviceId = _deviceId,
+                PlatformType = _platformType
             };
             
-            AddToLog($"📝 gRPC 회원가입 요청: {_username}");
-            AddToLog($"   PlatformType: {gameMessage.AuthUser.PlatformType}");
-            AddToLog($"   AuthKey: {gameMessage.AuthUser.AuthKey}");
+            AddToLog($"📝 API Gateway 회원가입 요청: {_username}");
+            AddToLog($"   PlatformType: {registerRequest.PlatformType}");
+            AddToLog($"   DeviceId: {registerRequest.DeviceId}");
+            AddToLog($"   Email: {registerRequest.Email}");
             
-            // gRPC 스트리밍 호출
-            using var call = _client.Game();
-            await call.RequestStream.WriteAsync(gameMessage);
-            await call.RequestStream.CompleteAsync();
+            // API Gateway 호출
+            var response = await _client.RegisterAsync(registerRequest);
             
-            // 응답 대기
-            var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+            AddToLog($"📨 API Gateway 회원가입 응답 수신:");
+            AddToLog($"   Success: {response.Success}");
+            AddToLog($"   Message: {response.Message}");
+            AddToLog($"   UserId: {response.UserId}");
             
-            if (await call.ResponseStream.MoveNext(cts.Token))
+            if (response.Success)
             {
-                var response = call.ResponseStream.Current;
-                AddToLog($"📨 gRPC 회원가입 응답 수신:");
-                AddToLog($"   ResultCode: {response.ResultCode}");
-                AddToLog($"   ResultMessage: {response.ResultMessage}");
-                
-                if (response.ResultCode == (int)ResultCode.Success)
-                {
-                    _statusMessage = "✅ 회원가입 성공";
-                    AddToLog($"   토큰: {response.Token?[..Math.Min(response.Token?.Length ?? 0, 20)]}...");
-                }
-                else
-                {
-                    _statusMessage = "❌ 회원가입 실패";
-                }
+                _statusMessage = "✅ 회원가입 성공";
             }
             else
             {
-                _statusMessage = "❌ 회원가입 응답 시간초과";
-                AddToLog("❌ gRPC 응답을 받지 못했습니다 (10초 시간초과)");
+                _statusMessage = "❌ 회원가입 실패";
             }
         }
         catch (Exception ex)
@@ -418,55 +424,41 @@ public class NetTest : MonoBehaviour
         
         try
         {
-            // protobuf GameMessage 생성
-            var gameMessage = new GameMessage
+            // API Gateway LoginRequest 생성
+            var loginRequest = new LoginRequest
             {
-                UserId = _username,
-                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                AuthUser = new AuthUser
-                {
-                    PlatformType = 1, // 로그인
-                    AuthKey = _username,
-                    RetPassKey = _password
-                }
+                Username = _username,
+                Password = _password,
+                DeviceId = _deviceId,
+                PlatformType = _platformType,
+                AuthKey = _authKey
             };
             
-            AddToLog($"🔑 gRPC 로그인 요청: {_username}");
-            AddToLog($"   PlatformType: {gameMessage.AuthUser.PlatformType}");
-            AddToLog($"   AuthKey: {gameMessage.AuthUser.AuthKey}");
+            AddToLog($"🔑 API Gateway 로그인 요청: {_username}");
+            AddToLog($"   PlatformType: {loginRequest.PlatformType}");
+            AddToLog($"   DeviceId: {loginRequest.DeviceId}");
+            AddToLog($"   AuthKey: {loginRequest.AuthKey}");
             
-            // gRPC 스트리밍 호출
-            using var call = _client.Game();
-            await call.RequestStream.WriteAsync(gameMessage);
-            await call.RequestStream.CompleteAsync();
+            // API Gateway 호출
+            var response = await _client.LoginAsync(loginRequest);
             
-            // 응답 대기
-            var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+            AddToLog($"📨 API Gateway 로그인 응답 수신:");
+            AddToLog($"   Success: {response.Success}");
+            AddToLog($"   Message: {response.Message}");
+            AddToLog($"   UserId: {response.UserId}");
             
-            if (await call.ResponseStream.MoveNext(cts.Token))
+            if (response.Success)
             {
-                var response = call.ResponseStream.Current;
-                AddToLog($"📨 gRPC 로그인 응답 수신:");
-                AddToLog($"   ResultCode: {response.ResultCode}");
-                AddToLog($"   ResultMessage: {response.ResultMessage}");
-                
-                if (response.ResultCode == (int)ResultCode.Success)
-                {
-                    _statusMessage = "✅ 로그인 성공";
-                    _isAuthenticated = true;
-                    AddToLog($"   토큰: {response.Token?[..Math.Min(response.Token?.Length ?? 0, 20)]}...");
-                    AddToLog("🔐 인증 상태 변경: 인증됨");
-                }
-                else
-                {
-                    _statusMessage = "❌ 로그인 실패";
-                    _isAuthenticated = false;
-                }
+                _statusMessage = "✅ 로그인 성공";
+                _isAuthenticated = true;
+                AddToLog($"   AccessToken: {response.AccessToken?[..Math.Min(response.AccessToken?.Length ?? 0, 20)]}...");
+                AddToLog($"   RefreshToken: {response.RefreshToken?[..Math.Min(response.RefreshToken?.Length ?? 0, 20)]}...");
+                AddToLog("🔐 인증 상태 변경: 인증됨");
             }
             else
             {
-                _statusMessage = "❌ 로그인 응답 시간초과";
-                AddToLog("❌ gRPC 응답을 받지 못했습니다 (10초 시간초과)");
+                _statusMessage = "❌ 로그인 실패";
+                _isAuthenticated = false;
             }
         }
         catch (Exception ex)

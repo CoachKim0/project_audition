@@ -368,7 +368,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetTest
   serverAddress: 127.0.0.1
-  serverPort: 5554
+  serverPort: 5550
 --- !u!4 &1089760525
 Transform:
   m_ObjectHideFlags: 0
