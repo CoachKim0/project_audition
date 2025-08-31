@@ -1,6 +1,7 @@
 using Grpc.Core;
 using Grpc.Net.Client;
 using API_Gateway.Protos;
+using DbServer.Grpc;
 using System.Text.Json;
 
 namespace API_Gateway.Services;
@@ -10,7 +11,6 @@ namespace API_Gateway.Services;
 /// </summary>
 public class GatewayServiceImpl : GatewayService.GatewayServiceBase
 {
-    private readonly GrpcChannel _authChannel;
     private readonly GrpcChannel _gameChannel;
     private readonly GrpcChannel _chatChannel;
     private readonly GrpcChannel _dbChannel;
@@ -19,17 +19,17 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
     public GatewayServiceImpl()
     {
         // 각 서비스의 gRPC 채널 생성
-        _authChannel = GrpcChannel.ForAddress("http://localhost:5555");
         _gameChannel = GrpcChannel.ForAddress("http://localhost:5551");
         _chatChannel = GrpcChannel.ForAddress("http://localhost:5552");
         _dbChannel = GrpcChannel.ForAddress("http://localhost:5553");
         _logChannel = GrpcChannel.ForAddress("http://localhost:5554");
+        
     }
 
     /// <summary>
     /// 로그인 처리 - Auth_Server로 라우팅 (간단한 구현)
     /// </summary>
-    public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
+    public override async Task<API_Gateway.Protos.LoginResponse> Login(API_Gateway.Protos.LoginRequest request, ServerCallContext context)
     {
         try
         {
@@ -39,7 +39,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
             // 현재는 테스트용 응답 반환
             await Task.Delay(100); // 비동기 시뮬레이션
             
-            return new LoginResponse
+            return new API_Gateway.Protos.LoginResponse
             {
                 Success = true,
                 Message = "로그인 성공 (테스트 구현)",
@@ -51,7 +51,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
         catch (Exception ex)
         {
             Console.WriteLine($"Login 오류: {ex.Message}");
-            return new LoginResponse
+            return new API_Gateway.Protos.LoginResponse
             {
                 Success = false,
                 Message = "로그인 처리 중 오류가 발생했습니다."
@@ -60,28 +60,32 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
     }
 
     /// <summary>
-    /// 회원가입 처리 - Auth_Server로 라우팅 (간단한 구현)
+    /// 회원가입 처리 - Auth_Server 검증 후 DB_Server 저장
     /// </summary>
-    public override async Task<RegisterResponse> Register(RegisterRequest request, ServerCallContext context)
+    public override async Task<API_Gateway.Protos.RegisterResponse> Register(API_Gateway.Protos.RegisterRequest request, ServerCallContext context)
     {
         try
         {
             Console.WriteLine($"API Gateway: 회원가입 요청 수신 - {request.Username}");
             
-            // TODO: Auth_Server로 실제 gRPC 호출 구현
-            await Task.Delay(100);
+            // 1. 토큰 검증 (임시로 스킵)
+            // TODO: Auth_Server 수정 후 토큰 검증 구현
             
-            return new RegisterResponse
+            // 2. DB Server에 저장 (임시 구현)
+            // TODO: DB_Server gRPC 클라이언트 연결 구현
+            await Task.Delay(50);
+            
+            return new API_Gateway.Protos.RegisterResponse
             {
                 Success = true,
-                Message = "회원가입 성공 (테스트 구현)",
+                Message = "회원가입 성공 (임시 구현)",
                 UserId = 1001
             };
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Register 오류: {ex.Message}");
-            return new RegisterResponse
+            return new API_Gateway.Protos.RegisterResponse
             {
                 Success = false,
                 Message = "회원가입 처리 중 오류가 발생했습니다."
@@ -92,7 +96,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
     /// <summary>
     /// 토큰 검증 - Auth_Server로 라우팅 (간단한 구현)
     /// </summary>
-    public override async Task<ValidateTokenResponse> ValidateToken(ValidateTokenRequest request, ServerCallContext context)
+    public override async Task<API_Gateway.Protos.ValidateTokenResponse> ValidateToken(API_Gateway.Protos.ValidateTokenRequest request, ServerCallContext context)
     {
         try
         {
@@ -101,7 +105,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
             // TODO: Auth_Server로 실제 gRPC 호출 구현
             await Task.Delay(50);
             
-            return new ValidateTokenResponse
+            return new API_Gateway.Protos.ValidateTokenResponse
             {
                 IsValid = true,
                 UserId = 1001,
@@ -111,7 +115,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
         catch (Exception ex)
         {
             Console.WriteLine($"ValidateToken 오류: {ex.Message}");
-            return new ValidateTokenResponse
+            return new API_Gateway.Protos.ValidateTokenResponse
             {
                 IsValid = false,
                 UserId = 0,

@@ -31,7 +31,8 @@
       "Bash(dotnet sln:*)",
       "Bash(del \"Chat_Server\\Modules\\Common\\ChatBase\\BaseChatService.cs\")",
       "Bash(find:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": [],

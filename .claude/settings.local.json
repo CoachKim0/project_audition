@@ -5,7 +5,8 @@
       "Bash(copy:*)",
       "Bash(mv:*)",
       "Bash(cp:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(dotnet new:*)"
     ],
     "deny": [],
     "ask": []

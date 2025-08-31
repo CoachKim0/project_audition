@@ -11,7 +11,7 @@ builder.Services.AddGrpc();
 
 // MySQL Entity Framework 설정
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=localhost;Database=GameDatabase;Uid=root;Pwd=1234;";
+    ?? "Server=127.0.0.1;Port=3306;Database=GameDatabase;Uid=root;Pwd=1111;";
 
 builder.Services.AddDbContext<GameDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))

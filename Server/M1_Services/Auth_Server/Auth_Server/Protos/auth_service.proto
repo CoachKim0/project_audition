@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "AuthServer.Grpc";
+
+package auth_service;
+
+service AuthService {
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+}
+
+message ValidateTokenRequest {
+  string auth_key = 1;
+  string username = 2;
+  string platform_type = 3;
+  string device_id = 4;
+}
+
+message ValidateTokenResponse {
+  bool is_valid = 1;
+  string message = 2;
+  string user_id = 3;
+}
