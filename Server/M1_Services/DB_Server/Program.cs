@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using DbServer.Services;
 using DbServer.Data.Context;
-using Shared.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,18 +10,18 @@ builder.Services.AddGrpc();
 
 // MySQL Entity Framework 설정
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=127.0.0.1;Port=3306;Database=GameDatabase;Uid=root;Pwd=1111;";
+    ?? "Server=localhost;Port=3306;Database=M1_DB;Uid=root;Pwd=1111;";
+
+Console.WriteLine($"사용중인 연결 문자열: {connectionString}");
 
 builder.Services.AddDbContext<GameDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+    options.UseMySql(connectionString, ServerVersion.Parse("8.0.41-mysql"))
            .LogTo(Console.WriteLine, LogLevel.Information));
 
 // 서비스 등록
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Auth_Server 클라이언트 등록
-builder.Services.AddSingleton<AuthServiceClient>();
 
 // Kestrel 서버 설정 - gRPC용 포트 5553
 builder.WebHost.ConfigureKestrel(serverOptions =>

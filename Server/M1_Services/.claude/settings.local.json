@@ -32,7 +32,10 @@
       "Bash(del \"Chat_Server\\Modules\\Common\\ChatBase\\BaseChatService.cs\")",
       "Bash(find:*)",
       "Bash(mv:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(mysql:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet ef database:*)"
     ],
     "deny": [],
     "ask": [],

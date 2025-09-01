@@ -12,8 +12,5 @@
     <PackageReference Include="Grpc.Tools" Version="2.57.0" PrivateAssets="All" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Protobuf Include="Protos\auth_service.proto" GrpcServices="Client" />
-  </ItemGroup>
 
 </Project>

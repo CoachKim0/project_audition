@@ -2,12 +2,6 @@ using Shared.DTOs;
 
 namespace Shared.Contracts;
 
-public interface IAuthServiceClient
-{
-    Task<bool> ValidateUserAsync(string userId, string token);
-    Task<string?> LoginAsync(string username, string password);
-}
-
 public interface IChatServiceClient  
 {
     Task<bool> SendMessageAsync(string roomId, string userId, string message);

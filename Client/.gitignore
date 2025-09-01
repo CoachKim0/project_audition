@@ -10,6 +10,7 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
+/Packages/
 *.log
 
 # By default unity supports Blender asset imports, *.blend1 blender files do not need to be commited to version control.
@@ -101,3 +102,4 @@ InitTestScene*.unity*
 # 유료 에셋 폴더 제외
 /[Aa]ssets/0_Extension/
 /[Aa]ssets/Plugins/Demigiant/
+/[Aa]ssets/Packages/

@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
     <ProjectReference Include="..\DB_Server\DB_Server.csproj" />
+    <ProjectReference Include="..\Auth_Server\Auth_Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>

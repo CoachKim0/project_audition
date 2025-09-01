@@ -64,6 +64,7 @@ message RegisterRequest {
   string email = 3;
   string device_id = 4;
   int32 platform_type = 5;
+  string auth_key = 6;
 }
 
 message RegisterResponse {

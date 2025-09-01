@@ -8,6 +8,7 @@ service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc ValidateAuthKey(ValidateAuthKeyRequest) returns (ValidateAuthKeyResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
 }
@@ -29,6 +30,9 @@ message RegisterRequest {
   string username = 1;
   string password = 2;
   string email = 3;
+  string auth_key = 4;
+  int32 platform_type = 5;
+  string device_id = 6;
 }
 
 message RegisterResponse {
@@ -66,4 +70,15 @@ message GetUserInfoResponse {
   int32 user_id = 2;
   string username = 3;
   string email = 4;
+}
+
+message ValidateAuthKeyRequest {
+  string auth_key = 1;
+  int32 platform_type = 2;
+  string device_id = 3;
+}
+
+message ValidateAuthKeyResponse {
+  bool success = 1;
+  string message = 2;
 }

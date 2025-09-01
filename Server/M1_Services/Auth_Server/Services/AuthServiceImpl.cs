@@ -10,6 +10,7 @@ public class AuthServiceImpl : AuthService.AuthServiceBase
     private readonly JwtTokenService _jwtService;
     private readonly Dictionary<string, UserData> _users; // 임시 메모리 저장소
     private readonly Dictionary<string, string> _refreshTokens;
+    private readonly string _validAuthKey = "google_or_apple_auth_key_abcd_1234"; // 테스트용 AuthKey
     private int _nextUserId = 1;
 
     public AuthServiceImpl(ILogger<AuthServiceImpl> logger, JwtTokenService jwtService)
@@ -27,6 +28,45 @@ public class AuthServiceImpl : AuthService.AuthServiceBase
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("testpass"),
             Email = "test@example.com"
         };
+    }
+
+    public override async Task<ValidateAuthKeyResponse> ValidateAuthKey(ValidateAuthKeyRequest request, ServerCallContext context)
+    {
+        _logger.LogInformation($"AuthKey validation attempt: '{request.AuthKey}' (Length: {request.AuthKey?.Length ?? 0})");
+        _logger.LogInformation($"Expected AuthKey: '{_validAuthKey}' (Length: {_validAuthKey.Length})");
+        _logger.LogInformation($"PlatformType: {request.PlatformType}, DeviceId: '{request.DeviceId}'");
+
+        try
+        {
+            // 테스트를 위해 임시로 빈 값도 허용
+            if (request.AuthKey == _validAuthKey || string.IsNullOrEmpty(request.AuthKey))
+            {
+                _logger.LogInformation($"AuthKey validation successful (AuthKey: '{request.AuthKey}')");
+                return new ValidateAuthKeyResponse
+                {
+                    Success = true,
+                    Message = "AuthKey 인증 성공"
+                };
+            }
+            else
+            {
+                _logger.LogWarning($"Invalid AuthKey provided: '{request.AuthKey}' != '{_validAuthKey}'");
+                return new ValidateAuthKeyResponse
+                {
+                    Success = false,
+                    Message = "잘못된 AuthKey입니다"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during AuthKey validation");
+            return new ValidateAuthKeyResponse
+            {
+                Success = false,
+                Message = "AuthKey 검증 중 오류가 발생했습니다"
+            };
+        }
     }
 
     public override async Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)

@@ -10,6 +10,9 @@ public class User
     [StringLength(36)]
     public string UserId { get; set; } = Guid.NewGuid().ToString();
 
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long UserIdx { get; set; }
+
     [Required]
     [StringLength(50)]
     [Column(TypeName = "varchar(50)")]

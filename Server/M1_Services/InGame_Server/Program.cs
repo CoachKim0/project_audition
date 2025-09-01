@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Builder;
 using InGame_Server.Grpc.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Services;
-
 class Program
 {
 
@@ -13,9 +11,6 @@ class Program
         var builder = WebApplication.CreateBuilder(args);
         
         builder.Services.AddGrpc();
-        
-        // Auth_Server 클라이언트 등록
-        builder.Services.AddSingleton<AuthServiceClient>();
         
         // Kestrel 서버 설정 - gRPC용 포트 5551
         builder.WebHost.ConfigureKestrel(serverOptions =>

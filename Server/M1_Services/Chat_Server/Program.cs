@@ -1,14 +1,9 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Chat_Server.Modules.Common.ChatBase;
-using Shared.Services;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // gRPC 서비스 추가
 builder.Services.AddGrpc();
-
-// Auth_Server 클라이언트 등록
-builder.Services.AddSingleton<AuthServiceClient>();
 
 // Kestrel 서버 설정 - gRPC용 포트 5552
 builder.WebHost.ConfigureKestrel(serverOptions =>

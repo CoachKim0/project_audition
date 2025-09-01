@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Log_Server.Services;
 using Serilog;
-using Shared.Services;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog 설정
@@ -19,9 +17,6 @@ builder.Services.AddGrpc();
 // 로그 서비스들 등록
 builder.Services.AddSingleton<ILogStorageService, FileLogStorageService>();
 builder.Services.AddSingleton<ILogCollectionService, LogCollectionService>();
-
-// Auth_Server 클라이언트 등록
-builder.Services.AddSingleton<AuthServiceClient>();
 
 // Kestrel 서버 설정
 builder.WebHost.ConfigureKestrel(serverOptions =>

@@ -17,7 +17,7 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<(bool Success, string? Token, string? UserId, string Message)> LoginAsync(string username, string password)
+    public async Task<(bool Success, string? Token, string? UserId, long UserIdx, string Message)> LoginAsync(string username, string password)
     {
         try
         {
@@ -26,12 +26,12 @@ public class AuthService : IAuthService
 
             if (user == null)
             {
-                return (false, null, null, "사용자를 찾을 수 없습니다.");
+                return (false, null, null, 0, "사용자를 찾을 수 없습니다.");
             }
 
             if (!VerifyPassword(password, user.PasswordHash))
             {
-                return (false, null, null, "비밀번호가 일치하지 않습니다.");
+                return (false, null, null, 0, "비밀번호가 일치하지 않습니다.");
             }
 
             // 기존 활성 세션 비활성화
@@ -46,16 +46,16 @@ public class AuthService : IAuthService
 
             _logger.LogInformation("사용자 {Username} 로그인 성공", username);
 
-            return (true, token, user.UserId, "로그인 성공");
+            return (true, token, user.UserId, user.UserIdx, "로그인 성공");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "로그인 중 오류 발생: {Username}", username);
-            return (false, null, null, "로그인 중 오류가 발생했습니다.");
+            return (false, null, null, 0, "로그인 중 오류가 발생했습니다.");
         }
     }
 
-    public async Task<(bool Success, string? UserId, string Message)> RegisterAsync(string username, string password, string email, string nickname)
+    public async Task<(bool Success, string? UserId, long UserIdx, string Message)> RegisterAsync(string username, string password, string email, string nickname)
     {
         try
         {
@@ -66,9 +66,9 @@ public class AuthService : IAuthService
             if (existingUser != null)
             {
                 if (existingUser.Username == username)
-                    return (false, null, "이미 존재하는 사용자명입니다.");
+                    return (false, null, 0, "이미 존재하는 사용자명입니다.");
                 else
-                    return (false, null, "이미 존재하는 이메일입니다.");
+                    return (false, null, 0, "이미 존재하는 이메일입니다.");
             }
 
             // 새 사용자 생성
@@ -87,16 +87,16 @@ public class AuthService : IAuthService
 
             _logger.LogInformation("새 사용자 등록: {Username}", username);
 
-            return (true, user.UserId, "회원가입이 완료되었습니다.");
+            return (true, user.UserId, user.UserIdx, "회원가입이 완료되었습니다.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "회원가입 중 오류 발생: {Username}", username);
-            return (false, null, "회원가입 중 오류가 발생했습니다.");
+            return (false, null, 0, "회원가입 중 오류가 발생했습니다.");
         }
     }
 
-    public async Task<(bool Valid, string? UserId)> ValidateTokenAsync(string token)
+    public async Task<(bool Valid, string? UserId, long UserIdx, string? Username)> ValidateTokenAsync(string token)
     {
         try
         {
@@ -106,15 +106,15 @@ public class AuthService : IAuthService
 
             if (session?.User?.IsActive == true)
             {
-                return (true, session.UserId);
+                return (true, session.UserId, session.User.UserIdx, session.User.Username);
             }
 
-            return (false, null);
+            return (false, null, 0, null);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "토큰 검증 중 오류 발생");
-            return (false, null);
+            return (false, null, 0, null);
         }
     }
 

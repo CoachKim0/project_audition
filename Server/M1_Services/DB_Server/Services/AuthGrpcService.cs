@@ -18,13 +18,14 @@ public class AuthGrpcService : DbServer.Grpc.AuthService.AuthServiceBase
     {
         try
         {
-            var (success, token, userId, message) = await _authService.LoginAsync(request.Username, request.Password);
+            var (success, token, userId, userIdx, message) = await _authService.LoginAsync(request.Username, request.Password);
 
             return new LoginResponse
             {
                 Success = success,
                 Token = token ?? "",
                 UserId = userId ?? "",
+                UserIdx = userIdx,
                 Message = message
             };
         }
@@ -46,7 +47,7 @@ public class AuthGrpcService : DbServer.Grpc.AuthService.AuthServiceBase
     {
         try
         {
-            var (success, userId, message) = await _authService.RegisterAsync(
+            var (success, userId, userIdx, message) = await _authService.RegisterAsync(
                 request.Username, 
                 request.Password, 
                 request.Email, 
@@ -56,6 +57,7 @@ public class AuthGrpcService : DbServer.Grpc.AuthService.AuthServiceBase
             {
                 Success = success,
                 UserId = userId ?? "",
+                UserIdx = userIdx,
                 Message = message
             };
         }
@@ -76,12 +78,14 @@ public class AuthGrpcService : DbServer.Grpc.AuthService.AuthServiceBase
     {
         try
         {
-            var (valid, userId) = await _authService.ValidateTokenAsync(request.Token);
+            var (valid, userId, userIdx, username) = await _authService.ValidateTokenAsync(request.Token);
 
             return new ValidateTokenResponse
             {
                 Valid = valid,
-                UserId = userId ?? ""
+                UserId = userId ?? "",
+                UserIdx = userIdx,
+                Username = username ?? ""
             };
         }
         catch (Exception ex)
@@ -91,7 +95,9 @@ public class AuthGrpcService : DbServer.Grpc.AuthService.AuthServiceBase
             return new ValidateTokenResponse
             {
                 Valid = false,
-                UserId = ""
+                UserId = "",
+                UserIdx = 0,
+                Username = ""
             };
         }
     }

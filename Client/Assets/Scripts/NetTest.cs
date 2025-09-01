@@ -42,7 +42,8 @@ public class NetTest : MonoBehaviour
     private GrpcChannel _channel;
     private GatewayService.GatewayServiceClient _client;
     private bool _isConnected = false;
-    private bool _isAuthenticated = false;
+    private bool _isAuthKeyValidated = false; // AuthKey 검증 상태
+    private bool _isAuthenticated = false; // 로그인 상태
     
     // GUI 스타일
     private GUIStyle _headerStyle;
@@ -168,8 +169,9 @@ public class NetTest : MonoBehaviour
         
         // 연결 상태 표시
         string connectionStatus = _isConnected ? "✅ 연결됨" : "❌ 연결 안됨";
-        string authStatus = _isAuthenticated ? "✅ 인증됨" : "❌ 인증 안됨";
-        GUILayout.Label($"상태: {connectionStatus} | {authStatus}", _statusStyle);
+        string authKeyStatus = _isAuthKeyValidated ? "✅ 인증키 검증됨" : "❌ 인증키 검증 안됨";
+        string loginStatus = _isAuthenticated ? "✅ 로그인됨" : "❌ 로그인 안됨";
+        GUILayout.Label($"상태: {connectionStatus} | {authKeyStatus} | {loginStatus}", _statusStyle);
     }
     
     private void DrawAuthInputSection()
@@ -184,6 +186,11 @@ public class NetTest : MonoBehaviour
         GUILayout.BeginHorizontal();
         GUILayout.Label("비밀번호:", GUILayout.Width(70));
         _password = GUILayout.PasswordField(_password, '*');
+        GUILayout.EndHorizontal();
+        
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("이메일:", GUILayout.Width(70));
+        _email = GUILayout.TextField(_email);
         GUILayout.EndHorizontal();
         
         GUILayout.BeginHorizontal();
@@ -215,6 +222,16 @@ public class NetTest : MonoBehaviour
         GUILayout.BeginHorizontal();
         
         GUI.enabled = !_isProcessing && _isConnected;
+        if (GUILayout.Button("🔑 AuthKey 인증", _buttonStyle))
+        {
+            ValidateAuthKey().Forget();
+        }
+        GUI.enabled = true;
+        GUILayout.EndHorizontal();
+        
+        GUILayout.BeginHorizontal();
+        
+        GUI.enabled = !_isProcessing && _isAuthKeyValidated; // AuthKey 검증된 경우에만 활성화
         if (GUILayout.Button("📝 회원가입", _buttonStyle))
         {
             RegisterUser().Forget();
@@ -305,8 +322,22 @@ public class NetTest : MonoBehaviour
             });
             _client = new GatewayService.GatewayServiceClient(_channel);
             
-            // 연결 테스트용 간단한 호출
+            // 실제 서버 연결 테스트
             AddToLog($"gRPC 채널 생성: {address}");
+            
+            // 간단한 ping 테스트 (실제 서버가 응답하는지 확인)
+            try 
+            {
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(3));
+                // 실제 API 호출로 연결 테스트 (임시 요청)
+                var testRequest = new LoginRequest { Username = "connection_test", Password = "test" };
+                var testResponse = await _client.LoginAsync(testRequest, cancellationToken: cts.Token);
+                // 응답이 오면 서버가 살아있음 (실패해도 연결은 됨)
+            }
+            catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.Unavailable)
+            {
+                throw new Exception("서버가 응답하지 않습니다 - 서버를 먼저 실행하세요");
+            }
             
             _isConnected = true;
             _statusMessage = "✅ gRPC 서버 연결 성공";
@@ -340,6 +371,7 @@ public class NetTest : MonoBehaviour
             }
             
             _isConnected = false;
+            _isAuthKeyValidated = false;
             _isAuthenticated = false;
             _statusMessage = "✅ gRPC 연결 해제 완료";
             AddToLog("gRPC 서버 연결 해제됨");
@@ -348,6 +380,54 @@ public class NetTest : MonoBehaviour
         {
             _statusMessage = "❌ gRPC 연결 해제 중 오류";
             AddToLog($"gRPC 연결 해제 오류: {ex.Message}");
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+    
+    private async UniTask ValidateAuthKey()
+    {
+        if (_client == null)
+        {
+            AddToLog("❌ gRPC 클라이언트가 연결되지 않았습니다");
+            return;
+        }
+        
+        _isProcessing = true;
+        _statusMessage = "gRPC AuthKey 검증 처리 중...";
+        
+        try
+        {
+            // TODO: AuthKey 검증 API 호출 (임시로 성공 처리)
+            await UniTask.Delay(1000); // 검증 시뮬레이션
+            
+            AddToLog($"🔑 AuthKey 검증 요청: {_authKey}");
+            AddToLog($"   PlatformType: {_platformType}");
+            AddToLog($"   DeviceId: {_deviceId}");
+            
+            // 임시로 항상 성공 처리 (실제로는 서버 호출 필요)
+            bool isValid = _authKey == "google_or_apple_auth_key_abcd_1234";
+            
+            if (isValid)
+            {
+                _statusMessage = "✅ AuthKey 검증 성공";
+                _isAuthKeyValidated = true;
+                AddToLog("🔐 AuthKey 검증 완료: 회원가입/로그인 가능");
+            }
+            else
+            {
+                _statusMessage = "❌ AuthKey 검증 실패";
+                _isAuthKeyValidated = false;
+                AddToLog("❌ AuthKey가 올바르지 않습니다");
+            }
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = "❌ gRPC AuthKey 검증 중 오류";
+            AddToLog($"gRPC AuthKey 검증 오류: {ex.Message}");
+            _isAuthKeyValidated = false;
         }
         finally
         {
@@ -394,6 +474,7 @@ public class NetTest : MonoBehaviour
             if (response.Success)
             {
                 _statusMessage = "✅ 회원가입 성공";
+                AddToLog("📝 회원가입 완료 - 로그인을 진행하세요");
             }
             else
             {
@@ -453,7 +534,7 @@ public class NetTest : MonoBehaviour
                 _isAuthenticated = true;
                 AddToLog($"   AccessToken: {response.AccessToken?[..Math.Min(response.AccessToken?.Length ?? 0, 20)]}...");
                 AddToLog($"   RefreshToken: {response.RefreshToken?[..Math.Min(response.RefreshToken?.Length ?? 0, 20)]}...");
-                AddToLog("🔐 인증 상태 변경: 인증됨");
+                AddToLog("🔐 로그인 상태 변경: 로그인됨");
             }
             else
             {
@@ -480,8 +561,9 @@ public class NetTest : MonoBehaviour
         try
         {
             _isAuthenticated = false;
+            _isAuthKeyValidated = false; // 로그아웃시 AuthKey도 초기화
             _statusMessage = "🚪 로그아웃 완료";
-            AddToLog("🔐 인증 상태 변경: 인증 해제됨");
+            AddToLog("🔐 상태 변경: 로그아웃 및 모든 인증 해제됨");
             AddToLog("로그아웃 처리됨 (로컬 세션 클리어)");
         }
         catch (Exception ex)

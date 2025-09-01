@@ -3,6 +3,7 @@ using Grpc.Net.Client;
 using API_Gateway.Protos;
 using DbServer.Grpc;
 using System.Text.Json;
+using AuthServerProtos = Auth_Server.Protos;
 
 namespace API_Gateway.Services;
 
@@ -15,6 +16,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
     private readonly GrpcChannel _chatChannel;
     private readonly GrpcChannel _dbChannel;
     private readonly GrpcChannel _logChannel;
+    private readonly GrpcChannel _authChannel;
 
     public GatewayServiceImpl()
     {
@@ -23,6 +25,7 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
         _chatChannel = GrpcChannel.ForAddress("http://localhost:5552");
         _dbChannel = GrpcChannel.ForAddress("http://localhost:5553");
         _logChannel = GrpcChannel.ForAddress("http://localhost:5554");
+        _authChannel = GrpcChannel.ForAddress("http://localhost:5555"); // Auth_Server 포트
         
     }
 
@@ -35,17 +38,23 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
         {
             Console.WriteLine($"API Gateway: 로그인 요청 수신 - {request.Username}");
             
-            // TODO: Auth_Server로 실제 gRPC 호출 구현
-            // 현재는 테스트용 응답 반환
-            await Task.Delay(100); // 비동기 시뮬레이션
+            // DB_Server로 실제 로그인 처리
+            var dbClient = new DbServer.Grpc.AuthService.AuthServiceClient(_dbChannel);
+            var dbRequest = new DbServer.Grpc.LoginRequest
+            {
+                Username = request.Username,
+                Password = request.Password
+            };
+            
+            var dbResponse = await dbClient.LoginAsync(dbRequest);
             
             return new API_Gateway.Protos.LoginResponse
             {
-                Success = true,
-                Message = "로그인 성공 (테스트 구현)",
-                AccessToken = "test_access_token",
-                RefreshToken = "test_refresh_token",
-                UserId = 1001
+                Success = dbResponse.Success,
+                Message = dbResponse.Message,
+                AccessToken = dbResponse.Token ?? "",
+                RefreshToken = dbResponse.Token ?? "", // 임시: 같은 토큰 사용
+                UserId = dbResponse.Success ? (int)dbResponse.UserIdx : 0
             };
         }
         catch (Exception ex)
@@ -60,26 +69,62 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
     }
 
     /// <summary>
-    /// 회원가입 처리 - Auth_Server 검증 후 DB_Server 저장
+    /// 회원가입 처리 - DB_Server로 실제 저장
     /// </summary>
     public override async Task<API_Gateway.Protos.RegisterResponse> Register(API_Gateway.Protos.RegisterRequest request, ServerCallContext context)
     {
         try
         {
             Console.WriteLine($"API Gateway: 회원가입 요청 수신 - {request.Username}");
+            Console.WriteLine($"API Gateway: 받은 AuthKey - '{request.AuthKey}'");
+            Console.WriteLine($"API Gateway: PlatformType - {request.PlatformType}");
+            Console.WriteLine($"API Gateway: DeviceId - '{request.DeviceId}'");
             
-            // 1. 토큰 검증 (임시로 스킵)
-            // TODO: Auth_Server 수정 후 토큰 검증 구현
+            // 1. Auth_Server에서 AuthKey 검증 먼저 수행
+            var authClient = new global::Auth_Server.Protos.AuthService.AuthServiceClient(_authChannel);
+            var authKeyRequest = new global::Auth_Server.Protos.ValidateAuthKeyRequest
+            {
+                AuthKey = request.AuthKey ?? "", // AuthKey 필드가 있다고 가정
+                PlatformType = request.PlatformType,
+                DeviceId = request.DeviceId ?? ""
+            };
             
-            // 2. DB Server에 저장 (임시 구현)
-            // TODO: DB_Server gRPC 클라이언트 연결 구현
-            await Task.Delay(50);
+            Console.WriteLine($"API Gateway: Auth_Server로 보내는 AuthKey - '{authKeyRequest.AuthKey}'");
+            
+            var authKeyResponse = await authClient.ValidateAuthKeyAsync(authKeyRequest);
+            
+            if (!authKeyResponse.Success)
+            {
+                Console.WriteLine($"AuthKey 검증 실패: {authKeyResponse.Message}");
+                return new API_Gateway.Protos.RegisterResponse
+                {
+                    Success = false,
+                    Message = $"인증 실패: {authKeyResponse.Message}"
+                };
+            }
+            
+            Console.WriteLine("AuthKey 검증 성공, DB_Server로 회원가입 진행");
+            
+            // 2. AuthKey 검증 성공 후 DB_Server로 실제 회원가입 진행
+            var dbClient = new DbServer.Grpc.AuthService.AuthServiceClient(_dbChannel);
+            
+            var dbRequest = new DbServer.Grpc.RegisterRequest
+            {
+                Username = request.Username,
+                Password = request.Password,
+                Email = request.Email,
+                Nickname = request.Username // 기본값으로 username 사용
+            };
+            
+            var dbResponse = await dbClient.RegisterAsync(dbRequest);
+            
+            Console.WriteLine($"DB_Server 응답: Success={dbResponse.Success}, Message={dbResponse.Message}");
             
             return new API_Gateway.Protos.RegisterResponse
             {
-                Success = true,
-                Message = "회원가입 성공 (임시 구현)",
-                UserId = 1001
+                Success = dbResponse.Success,
+                Message = dbResponse.Message,
+                UserId = dbResponse.Success ? (int)dbResponse.UserIdx : 0
             };
         }
         catch (Exception ex)
@@ -102,14 +147,20 @@ public class GatewayServiceImpl : GatewayService.GatewayServiceBase
         {
             Console.WriteLine($"API Gateway: 토큰 검증 요청 수신");
             
-            // TODO: Auth_Server로 실제 gRPC 호출 구현
-            await Task.Delay(50);
+            // DB_Server로 실제 토큰 검증 처리
+            var dbClient = new DbServer.Grpc.AuthService.AuthServiceClient(_dbChannel);
+            var dbRequest = new DbServer.Grpc.ValidateTokenRequest
+            {
+                Token = request.Token
+            };
+            
+            var dbResponse = await dbClient.ValidateTokenAsync(dbRequest);
             
             return new API_Gateway.Protos.ValidateTokenResponse
             {
-                IsValid = true,
-                UserId = 1001,
-                Username = "testuser"
+                IsValid = dbResponse.Valid,
+                UserId = dbResponse.Valid ? (int)dbResponse.UserIdx : 0,
+                Username = dbResponse.Username ?? ""
             };
         }
         catch (Exception ex)
